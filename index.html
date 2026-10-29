@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>우석초등학교 늘봄학교 만족도 조사</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 650px; margin: 0 auto; background: #ffffff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
+        p.subtitle { text-align: center; color: #7f8c8d; font-size: 14px; margin-bottom: 25px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; color: #34495e; }
+        
+        .checkbox-group { display: flex; gap: 12px; flex-wrap: wrap; background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #e9ecef; }
+        .checkbox-group label { font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 14px; }
+        .hidden { display: none; }
+        
+        .subject-pick-box { background: #fdfefe; border: 1px solid #d4e6f1; padding: 15px; border-radius: 8px; margin-top: 10px; }
+        .day-section { background: #e8f4f8; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #2980b9; }
+        .program-card { background: #ffffff; padding: 18px; border-radius: 8px; margin-top: 15px; border: 1px solid #d4e6f1; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
+        
+        .rating-group { display: flex; gap: 12px; margin-top: 6px; flex-wrap: wrap; }
+        .rating-group label { font-weight: normal; cursor: pointer; font-size: 13px; }
+        
+        .action-btn { display: block; width: 100%; background: #27ae60; color: white; border: none; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 15px; transition: background 0.2s; }
+        .action-btn:hover { background: #219653; }
+        .submit-btn { background: #3498db; }
+        .submit-btn:hover { background: #2980b9; }
+        .success-box { text-align: center; display: none; margin-top: 20px; }
+        .success-msg { color: #27ae60; font-size: 18px; font-weight: bold; margin-bottom: 15px; }
+        
+        /* 설문 기간 안내 전용 상자 스타일 */
+        .notice-box { text-align: center; padding: 30px 20px; background: #fdf2e9; border: 2px solid #e67e22; border-radius: 8px; margin-top: 10px; }
+        .notice-title { font-size: 20px; font-weight: bold; color: #d35400; margin-bottom: 10px; }
+        .notice-desc { font-size: 15px; color: #7f8c8d; line-height: 1.5; }
+        
+        .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="spinner"></div>
+    <p style="margin-top: 15px; font-weight: bold; color: #2c3e50;">설문 결과를 저장하는 중입니다...</p>
+</div>
+
+<div class="container">
+    <h2>2026학년도 우석초등학교 늘봄학교 만족도 조사</h2>
+    <p class="subtitle" id="surveyPeriodNotice">수강하는 요일과 과목을 선택하시면 해당 과목의 설문지가 나타납니다.</p>
+
+    <!-- 설문 기간 외 접속 시 표시될 안내 상자 -->
+    <div id="closedBox" class="notice-box hidden">
+        <div class="notice-title">⏳ 설문 응답 기간이 아닙니다.</div>
+        <div class="notice-desc" id="closedDesc"></div>
+    </div>
+
+    <!-- 설문 작성 폼 -->
+    <form id="surveyForm" onsubmit="submitForm(event)">
+        
+        <!-- [1단계] 수강 요일 선택 -->
+        <div class="form-group">
+            <label>1. 학생이 수강하는 <span style="color: #e74c3c; font-weight: bold;">모든 요일을 선택</span>하세요 (중복 선택 가능)<br>
+                             (예) 월요일, 수요일에 프로그램을 수강하는 경우 월요일, 수요일 모두 선택</label>
+            <div class="checkbox-group" id="dayCheckboxGroup">
+                <label><input type="checkbox" name="days" value="mon"> 월요일</label>
+                <label><input type="checkbox" name="days" value="tue"> 화요일</label>
+                <label><input type="checkbox" name="days" value="wed"> 수요일</label>
+                <label><input type="checkbox" name="days" value="thu"> 목요일</label>
+                <label><input type="checkbox" name="days" value="fri"> 금요일</label>
+            </div>
+            <button type="button" class="action-btn" onclick="showSubjectSelection()">선택한 요일의 과목 확인하기</button>
+        </div>
+
+        <!-- [2단계] 요일별 과목 선택 영역 -->
+        <div class="form-group hidden" id="subjectSelectionArea">
+            <label>2. 선택하신 요일의 수강 과목을 각각 체크해 주세요.</label>
+            <div id="subjectPickContainer"></div>
+            <button type="button" class="action-btn" style="background-color: #e67e22;" onclick="generateSurveyForms()">선택한 과목으로 설문 시작하기</button>
+        </div>
+
+        <!-- [3단계] 만족도 설문지 영역 -->
+        <div id="dynamicSurveyContainer" class="hidden"></div>
+
+        <button type="submit" id="submitBtn" class="action-btn submit-btn hidden">설문 전체 제출하기</button>
+    </form>
+
+    <div id="successBox" class="success-box">
+        <div class="success-msg">🎉 설문이 성공적으로 제출되었습니다! 참여해 주셔서 감사합니다.</div>
+    </div>
+</div>
+
+<script>
+    // ⚠️ 구글 앱스 스크립트 웹 앱 URL 입력란
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzEHUSt9oFytT-cK-M3ikfGqWoDgRmNVXqzjxqH7tnKrCQk8V6UWCu04IDLY7QYPZaL/exec";
+
+    // 🗓️ [설문 기한 설정] (년, 월-1, 일, 시, 분, 초)
+    // ※ 자바스크립트는 월(Month)이 0부터 시작하므로 11월은 10으로 설정합니다.
+      const SURVEY_START_DATE = new Date(2026, 9, 29, 0, 0, 0);    // 2026년 10월 29일 00:00:00 시작
+      const SURVEY_END_DATE   = new Date(2026, 10, 10, 17, 00, 00); // 2026년 11월 10일 17:00:00 마감
+
+    // 페이지 접속 시 설문 기간 자동 확인
+    window.addEventListener("DOMContentLoaded", function() {
+        checkSurveyPeriod();
+    });
+
+    function checkSurveyPeriod() {
+        const now = new Date();
+        const noticeEl = document.getElementById("surveyPeriodNotice");
+        const formEl = document.getElementById("surveyForm");
+        const closedBox = document.getElementById("closedBox");
+        const closedDesc = document.getElementById("closedDesc");
+
+        const startStr = `${SURVEY_START_DATE.getFullYear()}년 ${SURVEY_START_DATE.getMonth() + 1}월 ${SURVEY_START_DATE.getDate()}일`;
+        const endStr = `${SURVEY_END_DATE.getMonth() + 1}월 ${SURVEY_END_DATE.getDate()}일`;
+        
+        noticeEl.innerText = `설문 참여 기간: ${startStr} ~ ${endStr}`;
+
+        if (now < SURVEY_START_DATE) {
+            formEl.style.display = "none";
+            closedBox.classList.remove("hidden");
+            closedDesc.innerHTML = `본 설문조사는 <strong>${startStr}</strong>부터 참여하실 수 있습니다.<br>설문 기간에 다시 접속해 주세요.`;
+        } else if (now > SURVEY_END_DATE) {
+            formEl.style.display = "none";
+            closedBox.classList.remove("hidden");
+            closedDesc.innerHTML = `본 설문조사는 <strong>${endStr}</strong>부로 마감되었습니다.<br>참여해 주셔서 감사합니다.`;
+        } else {
+            formEl.style.display = "block";
+            closedBox.classList.add("hidden");
+        }
+    }
+
+    // 우석초등학교 개설 프로그램 (요일별)
+    const programsByDay = {
+        mon: { name: "월요일", programs: ["과학마술", "공작교실", "영어회화(월, 금)", "항공과학", "바이올린"] },
+        tue: { name: "화요일", programs: ["요리", "미술", "주산암산", "뉴스포츠"] },
+        wed: { name: "수요일", programs: ["영어뮤지컬", "토탈클레이", "생명과학", "코딩", "방송댄스"] },
+        thu: { name: "목요일", programs: ["역사놀이논술", "창의수학", "사고력보드게임", "컴퓨터", "배드민턴"] },
+        fri: { name: "금요일", programs: ["급수한자", "바둑", "음악줄넘기"] }
+    };
+
+    // [1단계 버튼 클릭시] 과목 체크박스 생성
+    function showSubjectSelection() {
+        const container = document.getElementById("subjectPickContainer");
+        const subjectArea = document.getElementById("subjectSelectionArea");
+        const surveyContainer = document.getElementById("dynamicSurveyContainer");
+        const submitBtn = document.getElementById("submitBtn");
+
+        container.innerHTML = "";
+        surveyContainer.innerHTML = "";
+        surveyContainer.classList.add("hidden");
+        submitBtn.classList.add("hidden");
+
+        const checkedDays = document.querySelectorAll('input[name="days"]:checked');
+        if (checkedDays.length === 0) {
+            alert("수강하시는 요일을 1개 이상 선택해 주세요!");
+            subjectArea.classList.add("hidden");
+            return;
+        }
+
+        checkedDays.forEach(function(dayBox) {
+            const dayKey = dayBox.value;
+            const dayData = programsByDay[dayKey];
+
+            if (dayData) {
+                const box = document.createElement("div");
+                box.className = "subject-pick-box";
+                
+                let html = `<strong>📌 ${dayData.name} 수강 과목 선택</strong><div class="checkbox-group" style="margin-top:8px;">`;
+                dayData.programs.forEach(function(prog) {
+                    html += `<label><input type="checkbox" name="sub_${dayKey}" value="${prog}"> ${prog}</label>`;
+                });
+                html += `</div>`;
+                box.innerHTML = html;
+                container.appendChild(box);
+            }
+        });
+
+        subjectArea.classList.remove("hidden");
+        subjectArea.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // [2단계 버튼 클릭시] Q1~Q6 설문 카드 생성
+    function generateSurveyForms() {
+        const container = document.getElementById("dynamicSurveyContainer");
+        const submitBtn = document.getElementById("submitBtn");
+        container.innerHTML = "";
+
+        const checkedDays = document.querySelectorAll('input[name="days"]:checked');
+        let selectedCount = 0;
+
+        checkedDays.forEach(function(dayBox) {
+            const dayKey = dayBox.value;
+            const dayName = programsByDay[dayKey].name;
+            const checkedSubs = document.querySelectorAll(`input[name="sub_${dayKey}"]:checked`);
+
+            if (checkedSubs.length > 0) {
+                const daySection = document.createElement("div");
+                daySection.className = "day-section";
+                let dayHtml = `<h3 style="margin-top: 0; color: #1b4f72;">📌 ${dayName} 설문 대상 과목</h3>`;
+
+                checkedSubs.forEach(function(subBox, index) {
+                    selectedCount++;
+                    const progName = subBox.value;
+
+                    dayHtml += `
+                        <div class="program-card" data-day="${dayName}" data-prog="${progName}">
+                            <h3 style="margin: 0 0 15px 0; color: #2980b9; border-bottom: 2px solid #d4e6f1; padding-bottom: 5px;">[${progName}]</h3>
+                            
+                            <div style="margin-bottom: 10px;">
+                                <label style="font-size: 13px;">Q1. 프로그램 운영 시간이 잘 지켜졌다.</label>
+                                <div class="rating-group">
+                                    <label><input type="radio" name="q1_${dayKey}_${index}" value="5" required> 매우그렇다</label>
+                                    <label><input type="radio" name="q1_${dayKey}_${index}" value="4"> 그렇다</label>
+                                    <label><input type="radio" name="q1_${dayKey}_${index}" value="3"> 보통이다</label>
+                                    <label><input type="radio" name="q1_${dayKey}_${index}" value="2"> 그렇지않다</label>
+                                    <label><input type="radio" name="q1_${dayKey}_${index}" value="1"> 매우그렇지않다</label>
+                                </div>
+                            </div>
+
+                            <div style="margin-bottom: 10px;">
+                                <label style="font-size: 13px;">Q2. 강사는 프로그램 내용을 이해하기 쉽게 설명하였다.</label>
+                                <div class="rating-group">
+                                    <label><input type="radio" name="q2_${dayKey}_${index}" value="5" required> 매우그렇다</label>
+                                    <label><input type="radio" name="q2_${dayKey}_${index}" value="4"> 그렇다</label>
+                                    <label><input type="radio" name="q2_${dayKey}_${index}" value="3"> 보통이다</label>
+                                    <label><input type="radio" name="q2_${dayKey}_${index}" value="2"> 그렇지않다</label>
+                                    <label><input type="radio" name="q2_${dayKey}_${index}" value="1"> 매우그렇지않다</label>
+                                </div>
+                            </div>
+
+                            <div style="margin-bottom: 10px;">
+                                <label style="font-size: 13px;">Q3. 사용된 교재 및 재료는 프로그램 활동에 도움이 되었다.</label>
+                                <div class="rating-group">
+                                    <label><input type="radio" name="q3_${dayKey}_${index}" value="5" required> 매우그렇다</label>
+                                    <label><input type="radio" name="q3_${dayKey}_${index}" value="4"> 그렇다</label>
+                                    <label><input type="radio" name="q3_${dayKey}_${index}" value="3"> 보통이다</label>
+                                    <label><input type="radio" name="q3_${dayKey}_${index}" value="2"> 그렇지않다</label>
+                                    <label><input type="radio" name="q3_${dayKey}_${index}" value="1"> 매우그렇지않다</label>
+                                </div>
+                            </div>
+
+                            <div style="margin-bottom: 10px;">
+                                <label style="font-size: 13px;">Q4. 학생이 프로그램에 적극 참여할 수 있도록 관심을 가지고 지도하였다.</label>
+                                <div class="rating-group">
+                                    <label><input type="radio" name="q4_${dayKey}_${index}" value="5" required> 매우그렇다</label>
+                                    <label><input type="radio" name="q4_${dayKey}_${index}" value="4"> 그렇다</label>
+                                    <label><input type="radio" name="q4_${dayKey}_${index}" value="3"> 보통이다</label>
+                                    <label><input type="radio" name="q4_${dayKey}_${index}" value="2"> 그렇지않다</label>
+                                    <label><input type="radio" name="q4_${dayKey}_${index}" value="1"> 매우그렇지않다</label>
+                                </div>
+                            </div>
+
+                            <div style="margin-bottom: 10px;">
+                                <label style="font-size: 13px;">Q5. 프로그램 참여를 통하여 학생의 특기계발 및 정서에 도움이 되었다.</label>
+                                <div class="rating-group">
+                                    <label><input type="radio" name="q5_${dayKey}_${index}" value="5" required> 매우그렇다</label>
+                                    <label><input type="radio" name="q5_${dayKey}_${index}" value="4"> 그렇다</label>
+                                    <label><input type="radio" name="q5_${dayKey}_${index}" value="3"> 보통이다</label>
+                                    <label><input type="radio" name="q5_${dayKey}_${index}" value="2"> 그렇지않다</label>
+                                    <label><input type="radio" name="q5_${dayKey}_${index}" value="1"> 매우그렇지않다</label>
+                                </div>
+                            </div>
+
+                            <div style="margin-bottom: 10px;">
+                                <label style="font-size: 13px;">Q6. 앞으로 이 프로그램에 계속 참여하겠다.</label>
+                                <div class="rating-group">
+                                    <label><input type="radio" name="q6_${dayKey}_${index}" value="5" required> 매우그렇다</label>
+                                    <label><input type="radio" name="q6_${dayKey}_${index}" value="4"> 그렇다</label>
+                                    <label><input type="radio" name="q6_${dayKey}_${index}" value="3"> 보통이다</label>
+                                    <label><input type="radio" name="q6_${dayKey}_${index}" value="2"> 그렇지않다</label>
+                                    <label><input type="radio" name="q6_${dayKey}_${index}" value="1"> 매우그렇지않다</label>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                daySection.innerHTML = dayHtml;
+                container.appendChild(daySection);
+            }
+        });
+
+        if (selectedCount === 0) {
+            alert("선택하신 요일 아래에 나타난 '수강 과목'을 최소 1개 이상 체크해 주세요!");
+            container.classList.add("hidden");
+            submitBtn.classList.add("hidden");
+            return;
+        }
+
+        container.classList.remove("hidden");
+        submitBtn.classList.remove("hidden");
+        container.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // 제출 처리
+    function submitForm(event) {
+        event.preventDefault();
+
+        if (GOOGLE_SCRIPT_URL === "여기에_구글_웹_앱_URL을_붙여넣으세요") {
+            alert("구글 연동 URL이 설정되지 않았습니다. 구글 웹 앱 URL을 붙여넣어 주세요!");
+            return;
+        }
+
+        document.getElementById("loadingOverlay").style.display = "flex";
+
+        const programCards = document.querySelectorAll(".program-card");
+        const resultsToSubmit = [];
+
+        programCards.forEach(function(card) {
+            const dayName = card.getAttribute("data-day");
+            const progName = card.getAttribute("data-prog");
+            
+            const q1Checked = card.querySelector(`input[name^="q1_"]:checked`);
+            const q2Checked = card.querySelector(`input[name^="q2_"]:checked`);
+            const q3Checked = card.querySelector(`input[name^="q3_"]:checked`);
+            const q4Checked = card.querySelector(`input[name^="q4_"]:checked`);
+            const q5Checked = card.querySelector(`input[name^="q5_"]:checked`);
+            const q6Checked = card.querySelector(`input[name^="q6_"]:checked`);
+
+            resultsToSubmit.push({
+                "제출일시": new Date().toLocaleString(),
+                "수강요일": dayName,
+                "프로그램명": progName,
+                "Q1(시간활용)": q1Checked ? q1Checked.value : "",
+                "Q2(발문)": q2Checked ? q2Checked.value : "",
+                "Q3(교재교구만족)": q3Checked ? q3Checked.value : "",
+                "Q4(학생관심)": q4Checked ? q4Checked.value : "",
+                "Q5(실력향상도움)": q5Checked ? q5Checked.value : "",
+                "Q6(지속참여희망)": q6Checked ? q6Checked.value : ""
+            });
+        });
+
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(resultsToSubmit)
+        })
+        .then(function() {
+            document.getElementById("loadingOverlay").style.display = "none";
+            document.getElementById("surveyForm").style.display = "none";
+            document.getElementById("successBox").style.display = "block";
+        })
+        .catch(function(error) {
+            document.getElementById("loadingOverlay").style.display = "none";
+            alert("제출 중 오류가 발생했습니다. 다시 시도해 주세요.");
+            console.error("Error:", error);
+        });
+    }
+</script>
+
+</body>
+</html>
